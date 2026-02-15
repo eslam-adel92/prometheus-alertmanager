@@ -1,6 +1,391 @@
+# =============================================================================
+# Prometheus Alert Rules
+# =============================================================================
+# This file defines alerting rules organized by category. Each rule evaluates
+# a PromQL expression and fires when the condition is true for the specified
+# duration ("for" clause).
+#
+# Labels:
+#   severity: "warning" or "critical" — used by Alertmanager for routing
+#
+# Annotations:
+#   summary: Short description for notification titles
+#   description: Detailed context including current value for debugging
+#
+# TEMPLATE NOTE: Adjust thresholds (80%, 85%, etc.) to match your SLOs.
+# Add/remove rules as needed for your specific infrastructure requirements.
+# =============================================================================
+
 groups:
- - name: Count greater than 5
-   rules:
-   - alert: CountGreaterThan5
-     expr: ping_request_count > 5
-     for: 5s
+  # ===========================================================================
+  # HOST RESOURCE ALERTS
+  # ===========================================================================
+  # Monitor CPU, memory, and system load on the host machine.
+  # These metrics come from the node-exporter service.
+  # ===========================================================================
+  - name: host_resource_alerts
+    rules:
+      # -----------------------------------------------------------------------
+      # High CPU Usage
+      # -----------------------------------------------------------------------
+      # Fires when CPU usage exceeds 80% averaged over 5 minutes.
+      # Uses the "idle" mode of node_cpu to calculate usage percentage.
+      # Formula: 100% minus the average idle CPU percentage across all cores.
+      # -----------------------------------------------------------------------
+      - alert: HostHighCpuUsage
+        expr: >
+          100 - (avg by(instance)
+            (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100
+          ) > 80
+        for: 5m
+        labels:
+          severity: warning
+          category: host
+        annotations:
+          summary: "Host CPU usage is above 80%"
+          description: >
+            CPU usage on {{ $labels.instance }} has been above 80%
+            for more than 5 minutes. Current value: {{ $value | printf "%.1f" }}%.
+
+      # -----------------------------------------------------------------------
+      # Critical CPU Usage
+      # -----------------------------------------------------------------------
+      # Fires when CPU usage exceeds 95% — indicates severe resource exhaustion.
+      # -----------------------------------------------------------------------
+      - alert: HostCriticalCpuUsage
+        expr: >
+          100 - (avg by(instance)
+            (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100
+          ) > 95
+        for: 2m
+        labels:
+          severity: critical
+          category: host
+        annotations:
+          summary: "Host CPU usage is critically high (>95%)"
+          description: >
+            CPU usage on {{ $labels.instance }} is above 95%.
+            Current value: {{ $value | printf "%.1f" }}%.
+            Immediate investigation required.
+
+      # -----------------------------------------------------------------------
+      # High Memory Usage
+      # -----------------------------------------------------------------------
+      # Fires when available memory drops below 15% of total.
+      # "Available" memory includes free + buffers + cached, which represents
+      # memory that can be reclaimed by applications if needed.
+      # -----------------------------------------------------------------------
+      - alert: HostHighMemoryUsage
+        expr: >
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          category: host
+        annotations:
+          summary: "Host memory usage is above 85%"
+          description: >
+            Memory usage on {{ $labels.instance }} is above 85%.
+            Current value: {{ $value | printf "%.1f" }}%.
+            Available: {{ with printf "node_memory_MemAvailable_bytes{instance='%s'}" $labels.instance | query }}{{ . | first | value | humanize1024 }}{{ end }}.
+
+      # -----------------------------------------------------------------------
+      # High System Load
+      # -----------------------------------------------------------------------
+      # Fires when the 5-minute load average exceeds the number of CPU cores.
+      # A load higher than the core count means processes are waiting for CPU.
+      # -----------------------------------------------------------------------
+      - alert: HostHighLoad
+        expr: >
+          node_load5 > count by(instance) (node_cpu_seconds_total{mode="idle"})
+        for: 5m
+        labels:
+          severity: warning
+          category: host
+        annotations:
+          summary: "Host load average exceeds CPU core count"
+          description: >
+            5-minute load average on {{ $labels.instance }} is {{ $value | printf "%.2f" }},
+            which exceeds the number of available CPU cores.
+
+  # ===========================================================================
+  # DISK MONITORING ALERTS
+  # ===========================================================================
+  # Monitor disk space, I/O performance, and filesystem health.
+  # These metrics come from the node-exporter service.
+  # ===========================================================================
+  - name: disk_alerts
+    rules:
+      # -----------------------------------------------------------------------
+      # Disk Space Low (Warning)
+      # -----------------------------------------------------------------------
+      # Fires when any mounted filesystem has less than 15% free space.
+      # Excludes tmpfs and other pseudo-filesystems via fstype filter.
+      # -----------------------------------------------------------------------
+      - alert: HostDiskSpaceLow
+        expr: >
+          (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}
+          / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"})) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          category: disk
+        annotations:
+          summary: "Disk space is above 85% used"
+          description: >
+            Filesystem {{ $labels.mountpoint }} on {{ $labels.instance }}
+            is {{ $value | printf "%.1f" }}% full.
+            Device: {{ $labels.device }}.
+
+      # -----------------------------------------------------------------------
+      # Disk Space Critical
+      # -----------------------------------------------------------------------
+      # Fires when any filesystem has less than 5% free space.
+      # At this level, services may start failing due to write errors.
+      # -----------------------------------------------------------------------
+      - alert: HostDiskSpaceCritical
+        expr: >
+          (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}
+          / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"})) * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+          category: disk
+        annotations:
+          summary: "Disk space is critically low (>95% used)"
+          description: >
+            Filesystem {{ $labels.mountpoint }} on {{ $labels.instance }}
+            is {{ $value | printf "%.1f" }}% full.
+            Immediate action required to free disk space.
+
+      # -----------------------------------------------------------------------
+      # Disk I/O High Utilization
+      # -----------------------------------------------------------------------
+      # Fires when a disk device is busy (>80% I/O utilization) for 10 min.
+      # High utilization indicates the disk is a potential bottleneck.
+      # -----------------------------------------------------------------------
+      - alert: HostDiskIOHigh
+        expr: >
+          irate(node_disk_io_time_seconds_total[5m]) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          category: disk
+        annotations:
+          summary: "Disk I/O utilization is high"
+          description: >
+            Disk {{ $labels.device }} on {{ $labels.instance }} has been
+            above 80% I/O utilization for 10 minutes.
+            Current: {{ $value | printf "%.1f" }}%.
+
+      # -----------------------------------------------------------------------
+      # Disk Will Fill Prediction
+      # -----------------------------------------------------------------------
+      # Predicts if a filesystem will fill up within the next 4 hours based
+      # on the current rate of disk consumption over the last 6 hours.
+      # Uses predict_linear() for trend-based forecasting.
+      # -----------------------------------------------------------------------
+      - alert: HostDiskWillFillIn4Hours
+        expr: >
+          predict_linear(
+            node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}[6h], 4*3600
+          ) < 0
+        for: 30m
+        labels:
+          severity: critical
+          category: disk
+        annotations:
+          summary: "Disk predicted to fill within 4 hours"
+          description: >
+            Based on current growth rate, filesystem {{ $labels.mountpoint }}
+            on {{ $labels.instance }} is predicted to run out of space
+            within the next 4 hours.
+
+  # ===========================================================================
+  # NETWORK TRAFFIC ALERTS
+  # ===========================================================================
+  # Monitor network errors, drops, and bandwidth saturation.
+  # These metrics come from the node-exporter service.
+  # ===========================================================================
+  - name: network_alerts
+    rules:
+      # -----------------------------------------------------------------------
+      # Network Receive Errors
+      # -----------------------------------------------------------------------
+      # Fires when the rate of network receive errors exceeds 10 per second.
+      # Receive errors indicate hardware issues, driver bugs, or congestion.
+      # -----------------------------------------------------------------------
+      - alert: HostNetworkReceiveErrors
+        expr: >
+          irate(node_network_receive_errs_total{device!~"lo|veth.*|docker.*|br-.*"}[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          category: network
+        annotations:
+          summary: "Network receive errors detected"
+          description: >
+            Interface {{ $labels.device }} on {{ $labels.instance }}
+            is receiving {{ $value | printf "%.0f" }} errors/sec.
+
+      # -----------------------------------------------------------------------
+      # Network Transmit Errors
+      # -----------------------------------------------------------------------
+      # Fires when the rate of network transmit errors exceeds 10 per second.
+      # -----------------------------------------------------------------------
+      - alert: HostNetworkTransmitErrors
+        expr: >
+          irate(node_network_transmit_errs_total{device!~"lo|veth.*|docker.*|br-.*"}[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          category: network
+        annotations:
+          summary: "Network transmit errors detected"
+          description: >
+            Interface {{ $labels.device }} on {{ $labels.instance }}
+            is transmitting {{ $value | printf "%.0f" }} errors/sec.
+
+      # -----------------------------------------------------------------------
+      # Network Interface Saturated
+      # -----------------------------------------------------------------------
+      # Fires when any physical network interface exceeds 80% of 1 Gbps.
+      # The threshold (100MB/s = 80% of 1Gbps) should be adjusted to match
+      # your actual network link speed.
+      #
+      # TEMPLATE NOTE: Change the threshold based on your NIC speed:
+      #   1 Gbps  → 100000000 (100 MB/s at 80%)
+      #   10 Gbps → 1000000000 (1 GB/s at 80%)
+      # -----------------------------------------------------------------------
+      - alert: HostNetworkInterfaceSaturated
+        expr: >
+          irate(node_network_receive_bytes_total{device!~"lo|veth.*|docker.*|br-.*"}[5m]) > 100000000
+          or
+          irate(node_network_transmit_bytes_total{device!~"lo|veth.*|docker.*|br-.*"}[5m]) > 100000000
+        for: 5m
+        labels:
+          severity: critical
+          category: network
+        annotations:
+          summary: "Network interface is saturated"
+          description: >
+            Interface {{ $labels.device }} on {{ $labels.instance }}
+            is transferring more than 100MB/s (80% of 1Gbps).
+
+      # -----------------------------------------------------------------------
+      # High Packet Drop Rate
+      # -----------------------------------------------------------------------
+      # Fires when network packet drops exceed 100 per second.
+      # Packet drops indicate buffer overflows, congestion, or resource limits.
+      # -----------------------------------------------------------------------
+      - alert: HostNetworkPacketDrops
+        expr: >
+          irate(node_network_receive_drop_total{device!~"lo|veth.*|docker.*|br-.*"}[5m]) > 100
+          or
+          irate(node_network_transmit_drop_total{device!~"lo|veth.*|docker.*|br-.*"}[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+          category: network
+        annotations:
+          summary: "Network packet drops detected"
+          description: >
+            Interface {{ $labels.device }} on {{ $labels.instance }}
+            is dropping more than 100 packets/sec.
+
+  # ===========================================================================
+  # CONTAINER MONITORING ALERTS
+  # ===========================================================================
+  # Monitor container CPU, memory, and lifecycle events.
+  # These metrics come from the cAdvisor service.
+  # ===========================================================================
+  - name: container_alerts
+    rules:
+      # -----------------------------------------------------------------------
+      # Container High CPU Usage
+      # -----------------------------------------------------------------------
+      # Fires when a container uses more than 80% of a single CPU core for 5m.
+      # Uses container_cpu_usage_seconds_total (includes all CPU modes).
+      # -----------------------------------------------------------------------
+      - alert: ContainerHighCpuUsage
+        expr: >
+          sum by(name, instance) (
+            irate(container_cpu_usage_seconds_total{name!=""}[5m])
+          ) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          category: container
+        annotations:
+          summary: "Container CPU usage is high"
+          description: >
+            Container {{ $labels.name }} on {{ $labels.instance }}
+            is using {{ $value | printf "%.1f" }}% CPU.
+
+      # -----------------------------------------------------------------------
+      # Container High Memory Usage
+      # -----------------------------------------------------------------------
+      # Fires when a container uses more than 85% of its memory limit.
+      # Only evaluates containers with a memory limit set (limit > 0).
+      # "Working set" memory is the non-reclaimable portion — the true usage.
+      # -----------------------------------------------------------------------
+      - alert: ContainerHighMemoryUsage
+        expr: >
+          (container_memory_working_set_bytes{name!=""}
+          / container_spec_memory_limit_bytes{name!=""} * 100) > 85
+          and container_spec_memory_limit_bytes{name!=""} > 0
+        for: 5m
+        labels:
+          severity: warning
+          category: container
+        annotations:
+          summary: "Container memory usage is above 85% of its limit"
+          description: >
+            Container {{ $labels.name }} on {{ $labels.instance }}
+            is using {{ $value | printf "%.1f" }}% of its memory limit.
+
+      # -----------------------------------------------------------------------
+      # Container Killed (OOM or External Signal)
+      # -----------------------------------------------------------------------
+      # Fires when a container is killed, which often indicates an
+      # Out-Of-Memory (OOM) kill event or a manual termination.
+      # -----------------------------------------------------------------------
+      - alert: ContainerKilled
+        expr: >
+          time() - container_last_seen{name!=""} > 60
+        for: 1m
+        labels:
+          severity: critical
+          category: container
+        annotations:
+          summary: "Container has disappeared"
+          description: >
+            Container {{ $labels.name }} on {{ $labels.instance }}
+            has not been seen for more than 60 seconds.
+            It may have been killed or crashed.
+
+  # ===========================================================================
+  # APPLICATION ALERTS
+  # ===========================================================================
+  # Custom application-specific alerts.
+  # These are the original demo rules from the Prometheus tutorial.
+  # ===========================================================================
+  - name: application_alerts
+    rules:
+      # -----------------------------------------------------------------------
+      # Ping Counter Threshold
+      # -----------------------------------------------------------------------
+      # Original demo rule: fires when the /ping endpoint has been hit more
+      # than 5 times. This demonstrates Prometheus alerting basics.
+      # -----------------------------------------------------------------------
+      - alert: CountGreaterThan5
+        expr: ping_request_count > 5
+        for: 5s
+        labels:
+          severity: warning
+          category: application
+        annotations:
+          summary: "Ping count exceeded threshold"
+          description: >
+            The ping_request_count has exceeded 5.
+            Current value: {{ $value }}.

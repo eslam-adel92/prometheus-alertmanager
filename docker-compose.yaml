@@ -1,34 +1,146 @@
+# =============================================================================
+# Docker Compose — Prometheus Monitoring Stack
+# =============================================================================
+# This Compose file defines a complete monitoring stack with:
+#   - A sample Go application (server) that exposes custom Prometheus metrics
+#   - Prometheus for metrics collection, storage, and alerting evaluation
+#   - Node Exporter for host-level metrics (CPU, memory, disk, network)
+#   - cAdvisor for container-level metrics (per-container CPU, memory, net, I/O)
+#   - Alertmanager for alert routing and notification
+#   - Grafana for visualization and dashboards
+#
+# TEMPLATE NOTE: To adapt this stack for a different environment:
+#   1. Update port mappings if they conflict with existing services
+#   2. Replace the "server" service with your own application(s)
+#   3. Add additional scrape targets in prometheus/prometheus.yml
+#   4. Configure alertmanager/alertmanager.yml with your notification channels
+# =============================================================================
+
 services:
+
+  # ---------------------------------------------------------------------------
+  # Sample Application Server
+  # ---------------------------------------------------------------------------
+  # A minimal Go HTTP server that exposes a /ping endpoint and a /metrics
+  # endpoint for Prometheus to scrape. Serves as a demo for custom app metrics.
+  # Replace this with your own application service(s) as needed.
+  # ---------------------------------------------------------------------------
   server:
     build:
       dockerfile: Dockerfile
       context: .
     ports:
       - "8090:8090"
+    restart: unless-stopped  # Auto-restart on failure or host reboot
+
+  # ---------------------------------------------------------------------------
+  # Prometheus — Metrics Collection & Alert Evaluation
+  # ---------------------------------------------------------------------------
+  # Central time-series database that scrapes metrics from all exporters and
+  # application endpoints. Evaluates alert rules and forwards firing alerts
+  # to Alertmanager.
+  #
+  # Key flags:
+  #   --web.enable-remote-write-receiver : Allows external systems to push
+  #       metrics into Prometheus via the remote write API
+  #   --config.file : Path to the main Prometheus configuration file
+  #   --storage.tsdb.retention.time : How long to keep metrics data (15 days)
+  #   --web.enable-lifecycle : Enables /-/reload endpoint for hot-reloading config
+  # ---------------------------------------------------------------------------
   prometheus:
     image: prom/prometheus:v2.45.3
     restart: unless-stopped
     volumes:
+      # Mount the local prometheus/ directory containing prometheus.yml and rules.yml
       - ./prometheus/:/etc/prometheus/
+      # Named volume for persistent metric storage across container restarts
+      - prometheus_data:/prometheus
     command:
       - --web.enable-remote-write-receiver
       - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle
     ports:
       - "9090:9090"
+
+  # ---------------------------------------------------------------------------
+  # Node Exporter — Host-Level Metrics
+  # ---------------------------------------------------------------------------
+  # Exposes hardware and OS metrics from the host machine including:
+  #   - CPU usage, load averages, context switches
+  #   - Memory usage, swap, buffers/cache
+  #   - Disk space, I/O throughput, latency
+  #   - Network interface traffic, errors, drops
+  #   - Filesystem mount points and usage
+  #
+  # The host's /proc, /sys, and / are bind-mounted read-only so node-exporter
+  # can read kernel metrics without modifying the host.
+  #
+  # TEMPLATE NOTE: This configuration works on any Linux host. The filesystem
+  # mount-point exclusion filter removes virtual filesystems to avoid noise.
+  # ---------------------------------------------------------------------------
   node-exporter:
     image: prom/node-exporter:v1.7.0
     restart: unless-stopped
     volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
+      - /proc:/host/proc:ro          # Kernel process information
+      - /sys:/host/sys:ro            # Kernel device/driver information
+      - /:/rootfs:ro                 # Root filesystem for disk usage stats
     command:
-      - '--path.procfs=/host/proc'
-      - '--path.rootfs=/rootfs'
-      - '--path.sysfs=/host/sys'
+      - '--path.procfs=/host/proc'                 # Tell node-exporter where /proc is
+      - '--path.rootfs=/rootfs'                    # Tell node-exporter where / is
+      - '--path.sysfs=/host/sys'                   # Tell node-exporter where /sys is
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      # The above excludes virtual/pseudo filesystems from disk usage metrics
+      # to avoid noise from Docker overlay mounts and system pseudo-fs
     ports:
       - 9100:9100
+
+  # ---------------------------------------------------------------------------
+  # cAdvisor — Container-Level Metrics
+  # ---------------------------------------------------------------------------
+  # Google's Container Advisor exposes per-container resource usage metrics:
+  #   - Container CPU usage (user, system, total)
+  #   - Container memory usage (RSS, cache, working set, limit)
+  #   - Container network I/O (bytes received/transmitted per interface)
+  #   - Container block I/O (disk reads/writes per device)
+  #   - Container restarts and lifecycle events
+  #
+  # Required volume mounts:
+  #   /var/run/docker.sock : Access to Docker API for container discovery
+  #   /sys, /var/lib/docker : Kernel cgroup data and Docker storage metadata
+  #   /dev/disk : Disk device information for I/O metrics
+  #
+  # TEMPLATE NOTE: This works on any Docker host. For Podman or other runtimes,
+  # adjust the socket path and storage directories accordingly.
+  # ---------------------------------------------------------------------------
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    restart: unless-stopped
+    privileged: true  # Required for full access to cgroup and device metrics
+    volumes:
+      - /:/rootfs:ro                          # Root filesystem (read-only)
+      - /var/run:/var/run:ro                  # Docker socket for container discovery
+      - /sys:/sys:ro                          # Kernel cgroup and device info
+      - /var/lib/docker/:/var/lib/docker:ro   # Docker storage driver metadata
+      - /dev/disk/:/dev/disk:ro               # Physical disk device info
+    ports:
+      - 8080:8080
+
+  # ---------------------------------------------------------------------------
+  # Alertmanager — Alert Routing & Notification
+  # ---------------------------------------------------------------------------
+  # Receives alerts from Prometheus and routes them to notification channels
+  # (webhooks, email, Slack, PagerDuty, etc.) based on severity labels.
+  #
+  # Features:
+  #   - Groups related alerts to reduce notification noise
+  #   - Supports inhibition rules (e.g., critical silences warning)
+  #   - Supports silencing alerts temporarily via the web UI
+  #
+  # TEMPLATE NOTE: Edit alertmanager/alertmanager.yml to configure your
+  # notification endpoints (webhook URLs, Slack tokens, email SMTP, etc.)
+  # ---------------------------------------------------------------------------
   alertmanager:
     image: prom/alertmanager:v0.27.0
     restart: unless-stopped
@@ -36,14 +148,45 @@ services:
       - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
     ports:
       - 9093:9093
+
+  # ---------------------------------------------------------------------------
+  # Grafana — Visualization & Dashboards
+  # ---------------------------------------------------------------------------
+  # Provides pre-provisioned dashboards for:
+  #   - Host Resource Overview (CPU, memory, load, uptime)
+  #   - Network Traffic (bytes in/out, errors, packets)
+  #   - Disk Monitoring (space usage, I/O, latency)
+  #   - Container Monitoring (per-container CPU, memory, network, I/O)
+  #   - Application Metrics (ping_request_count)
+  #
+  # Environment variables:
+  #   GF_AUTH_ANONYMOUS_* : Enable anonymous access (no login required)
+  #   GF_AUTH_BASIC_ENABLED : Disable basic auth for convenience in dev/demo
+  #
+  # TEMPLATE NOTE: For production, remove anonymous auth and configure proper
+  # authentication (LDAP, OAuth, etc.) via environment variables or grafana.ini.
+  # ---------------------------------------------------------------------------
   grafana:
     image: grafana/grafana:10.4.0
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_BASIC_ENABLED=false
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin      # Anonymous users get Admin role
+      - GF_AUTH_ANONYMOUS_ENABLED=true         # Allow access without login
+      - GF_AUTH_BASIC_ENABLED=false             # Disable username/password login
     volumes:
+      # Provisioning directory contains datasource and dashboard definitions
       - ./grafana/provisioning:/etc/grafana/provisioning
+      # Named volume for persistent Grafana data (users, settings, annotations)
+      - grafana_data:/var/lib/grafana
+
+# =============================================================================
+# Named Volumes
+# =============================================================================
+# Named volumes persist data across container restarts and re-creations.
+# To reset all data: docker compose down -v
+# =============================================================================
+volumes:
+  prometheus_data:    # Stores Prometheus TSDB data (time-series metrics)
+  grafana_data:       # Stores Grafana databases (dashboards, users, settings)

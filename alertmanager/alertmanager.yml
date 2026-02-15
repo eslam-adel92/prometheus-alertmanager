@@ -1,10 +1,139 @@
+# =============================================================================
+# Alertmanager Configuration
+# =============================================================================
+# This file configures how Prometheus alerts are routed to notification
+# channels. Alerts are grouped, deduplicated, and delivered based on their
+# labels (primarily "severity").
+#
+# TEMPLATE NOTE: To adapt for your environment:
+#   1. Replace webhook URLs with your actual notification endpoints
+#   2. Add receivers for email, Slack, PagerDuty, etc. (see examples below)
+#   3. Adjust timing parameters based on your SLA requirements
+#   4. Update route matchers to align with your alert label scheme
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Global Configuration
+# -----------------------------------------------------------------------------
+# Settings that apply to all notification channels.
+# TEMPLATE NOTE: Uncomment and configure SMTP for email notifications.
+# -----------------------------------------------------------------------------
+global:
+  # smtp_smarthost: 'smtp.example.com:587'     # SMTP server for email alerts
+  # smtp_from: 'alertmanager@example.com'       # Sender email address
+  # smtp_auth_username: 'alertmanager'           # SMTP username
+  # smtp_auth_password: 'password'               # SMTP password
+  resolve_timeout: 5m # Mark alerts as resolved if not firing for this duration
+
+# -----------------------------------------------------------------------------
+# Alert Routing Tree
+# -----------------------------------------------------------------------------
+# Routes determine which receiver handles each alert based on label matching.
+# The top-level route is the default; child routes handle specific cases.
+#
+# Timing parameters:
+#   group_wait      : Wait this long for more alerts before sending the first
+#                     notification for a new group (batches related alerts)
+#   group_interval  : Wait this long before sending updates for an existing group
+#   repeat_interval : Wait this long before re-sending an already-sent notification
+#
+# Group keys:
+#   Alerts are grouped by these labels. Alerts with the same group key values
+#   are batched into a single notification to reduce noise.
+# -----------------------------------------------------------------------------
 route:
-# `group_wait` default is 30s, indicating the duration to hold off before sending an alert notification.
-  group_wait: 5s
+  # Default receiver for all alerts not matched by child routes
   receiver: webhook_receiver
 
+  # Group alerts by name, instance, and severity to reduce notification noise
+  group_by: ["alertname", "instance", "severity"]
+
+  group_wait: 30s # Wait 30s for related alerts to arrive before notifying
+  group_interval: 5m # Wait 5m before sending updates for the same group
+  repeat_interval: 4h # Re-send unresolved alerts every 4 hours
+
+  # ---------------------------------------------------------------------------
+  # Child Routes — Severity-Based Routing
+  # ---------------------------------------------------------------------------
+  # These routes override the default receiver based on alert severity.
+  # More specific routes are listed first (critical before warning).
+  # ---------------------------------------------------------------------------
+  routes:
+    # Critical alerts — sent to both webhook and (optionally) a high-priority channel
+    - receiver: webhook_critical
+      matchers:
+        - severity="critical"
+      group_wait: 10s # Shorter wait for critical alerts — notify faster
+      repeat_interval: 1h # Repeat more frequently for critical alerts
+      continue: false # Stop processing routes after this match
+
+    # Warning alerts — sent to the default webhook
+    - receiver: webhook_receiver
+      matchers:
+        - severity="warning"
+      continue: false
+
+# -----------------------------------------------------------------------------
+# Inhibition Rules
+# -----------------------------------------------------------------------------
+# Inhibition rules suppress lower-severity alerts when a higher-severity
+# alert is already firing for the same target. This prevents alert storms
+# where both "warning" and "critical" fire simultaneously for the same issue.
+#
+# Example: If HostCriticalCpuUsage (critical) fires, HostHighCpuUsage (warning)
+# for the same instance is automatically suppressed.
+# -----------------------------------------------------------------------------
+inhibit_rules:
+  # Suppress warnings when a critical alert exists for the same alertname+instance
+  - source_matchers:
+      - severity="critical"
+    target_matchers:
+      - severity="warning"
+    # Only inhibit if both alerts share the same alertname and instance
+    equal: ["alertname", "instance"]
+
+# -----------------------------------------------------------------------------
+# Receivers — Notification Channels
+# -----------------------------------------------------------------------------
+# Each receiver defines one or more notification channels.
+#
+# TEMPLATE NOTE: Add your preferred notification channels below. Examples:
+#   - Slack: slack_configs with api_url and channel
+#   - Email: email_configs with to addresses
+#   - PagerDuty: pagerduty_configs with routing_key
+#   - OpsGenie: opsgenie_configs with api_key
+# See: https://prometheus.io/docs/alerting/latest/configuration/#receiver
+# -----------------------------------------------------------------------------
 receivers:
+  # Default receiver for warning-level alerts
   - name: webhook_receiver
     webhook_configs:
-      - url: 'https://webhook.site/614c3637-bc6b-4a85-9873-89b8fcbe3fb8'
-        send_resolved: false
+      - url: "https://webhook.site/614c3637-bc6b-4a85-9873-89b8fcbe3fb8"
+        send_resolved: true # Also notify when alerts are resolved
+
+  # High-priority receiver for critical alerts
+  # TEMPLATE NOTE: In production, point this to a paging service (PagerDuty,
+  # OpsGenie) in addition to or instead of a webhook.
+  - name: webhook_critical
+    webhook_configs:
+      - url: "https://webhook.site/614c3637-bc6b-4a85-9873-89b8fcbe3fb8"
+        send_resolved: true
+
+  # ---------------------------------------------------------------------------
+  # Example: Slack Receiver (uncomment and configure)
+  # ---------------------------------------------------------------------------
+  # - name: slack_notifications
+  #   slack_configs:
+  #     - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+  #       channel: '#alerts'
+  #       title: '{{ .GroupLabels.alertname }}'
+  #       text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+  #       send_resolved: true
+
+  # ---------------------------------------------------------------------------
+  # Example: Email Receiver (uncomment and configure)
+  # ---------------------------------------------------------------------------
+  # - name: email_notifications
+  #   email_configs:
+  #     - to: 'oncall@example.com'
+  #       send_resolved: true
