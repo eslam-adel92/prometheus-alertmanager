@@ -176,7 +176,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "sum(irate(container_network_receive_bytes_total{id=~'/system.slice/docker-[a-z0-9]*.scope'}[5m])) + sum(irate(container_network_transmit_bytes_total{id=~'/system.slice/docker-[a-z0-9]*.scope'}[5m]))",
+          "expr": "sum(irate(container_network_receive_bytes_total{id='/', interface=~'br-.*'}[5m])) + sum(irate(container_network_transmit_bytes_total{id='/', interface=~'br-.*'}[5m]))",
           "legendFormat": "Total Net I/O",
           "refId": "A"
         }
@@ -363,12 +363,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "sum by(name) (irate(container_network_receive_bytes_total{id=~'/system.slice/docker-[a-z0-9]*.scope'}[5m]))",
-          "legendFormat": "{{ name }} {{ image }} {{ id }} (rx)",
+          "expr": "irate(container_network_receive_bytes_total{id='/', interface=~'br-.*'}[5m])",
+          "legendFormat": "{{ interface }} (rx)",
           "refId": "A"
         }
       ],
-      "title": "Container Network Receive (Unavailable)",
+      "title": "Container Network Receive",
       "type": "timeseries"
     },
     {
@@ -420,12 +420,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "sum by(name) (irate(container_network_transmit_bytes_total{id=~'/system.slice/docker-[a-z0-9]*.scope'}[5m]))",
-          "legendFormat": "{{ name }} {{ image }} {{ id }} (tx)",
+          "expr": "irate(container_network_transmit_bytes_total{id='/', interface=~'br-.*'}[5m])",
+          "legendFormat": "{{ interface }} (tx)",
           "refId": "A"
         }
       ],
-      "title": "Container Network Transmit (Unavailable)",
+      "title": "Container Network Transmit",
       "type": "timeseries"
     },
     {
