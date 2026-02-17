@@ -57,7 +57,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "count(container_last_seen{name!=''})",
+          "expr": "count(container_last_seen{id=~'/system.slice/docker-[a-z0-9]*.scope'})",
           "legendFormat": "Containers",
           "refId": "A"
         }
@@ -100,7 +100,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "sum(irate(container_cpu_usage_seconds_total{name!=''}[5m])) * 100",
+          "expr": "sum(irate(container_cpu_usage_seconds_total{id=~'/system.slice/docker-[a-z0-9]*.scope'}[5m])) * 100",
           "legendFormat": "Total CPU %",
           "refId": "A"
         }
@@ -138,7 +138,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "sum(container_memory_working_set_bytes{name!=''})",
+          "expr": "sum(container_memory_working_set_bytes{id=~'/system.slice/docker-[a-z0-9]*.scope'})",
           "legendFormat": "Total Memory",
           "refId": "A"
         }
@@ -176,7 +176,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "sum(irate(container_network_receive_bytes_total{name!=''}[5m])) + sum(irate(container_network_transmit_bytes_total{name!=''}[5m]))",
+          "expr": "sum(irate(container_network_receive_bytes_total{id=~'/system.slice/docker-[a-z0-9]*.scope'}[5m])) + sum(irate(container_network_transmit_bytes_total{id=~'/system.slice/docker-[a-z0-9]*.scope'}[5m]))",
           "legendFormat": "Total Net I/O",
           "refId": "A"
         }
@@ -241,8 +241,8 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "sum by(name) (irate(container_cpu_usage_seconds_total{name!=''}[5m])) * 100",
-          "legendFormat": "{{ name }}",
+          "expr": "sum by(name) (irate(container_cpu_usage_seconds_total{id=~'/system.slice/docker-[a-z0-9]*.scope'}[5m])) * 100",
+          "legendFormat": "{{ name }} {{ image }} {{ id }}",
           "refId": "A"
         }
       ],
@@ -298,8 +298,8 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "container_memory_working_set_bytes{name!=''}",
-          "legendFormat": "{{ name }}",
+          "expr": "container_memory_working_set_bytes{id=~'/system.slice/docker-[a-z0-9]*.scope'}",
+          "legendFormat": "{{ name }} {{ image }} {{ id }}",
           "refId": "A"
         }
       ],
@@ -363,12 +363,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "sum by(name) (irate(container_network_receive_bytes_total{name!=''}[5m]))",
-          "legendFormat": "{{ name }} (rx)",
+          "expr": "sum by(name) (irate(container_network_receive_bytes_total{id=~'/system.slice/docker-[a-z0-9]*.scope'}[5m]))",
+          "legendFormat": "{{ name }} {{ image }} {{ id }} (rx)",
           "refId": "A"
         }
       ],
-      "title": "Container Network Receive",
+      "title": "Container Network Receive (Unavailable)",
       "type": "timeseries"
     },
     {
@@ -420,12 +420,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "sum by(name) (irate(container_network_transmit_bytes_total{name!=''}[5m]))",
-          "legendFormat": "{{ name }} (tx)",
+          "expr": "sum by(name) (irate(container_network_transmit_bytes_total{id=~'/system.slice/docker-[a-z0-9]*.scope'}[5m]))",
+          "legendFormat": "{{ name }} {{ image }} {{ id }} (tx)",
           "refId": "A"
         }
       ],
-      "title": "Container Network Transmit",
+      "title": "Container Network Transmit (Unavailable)",
       "type": "timeseries"
     },
     {
@@ -477,14 +477,14 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "sum by(name) (irate(container_fs_reads_bytes_total{name!=''}[5m]))",
-          "legendFormat": "{{ name }} (read)",
+          "expr": "sum by(name) (irate(container_fs_reads_bytes_total{id=~'/system.slice/docker-[a-z0-9]*.scope'}[5m]))",
+          "legendFormat": "{{ name }} {{ image }} {{ id }} (read)",
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "sum by(name) (irate(container_fs_writes_bytes_total{name!=''}[5m]))",
-          "legendFormat": "{{ name }} (write)",
+          "expr": "sum by(name) (irate(container_fs_writes_bytes_total{id=~'/system.slice/docker-[a-z0-9]*.scope'}[5m]))",
+          "legendFormat": "{{ name }} {{ image }} {{ id }} (write)",
           "refId": "B"
         }
       ],

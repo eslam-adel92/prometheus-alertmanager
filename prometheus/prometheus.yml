@@ -117,12 +117,9 @@ scrape_configs:
     # Drop noisy/high-cardinality metrics to save storage and improve performance
     metric_relabel_configs:
       - source_labels: [__name__]
-        regex: "container_(tasks_state|last_seen|memory_failures_total)"
+        regex: "container_(tasks_state|memory_failures_total)"
         action: drop
       # Drop metrics from the cAdvisor container itself (monitoring the monitor)
-      - source_labels: [name]
-        regex: ""
-        action: drop
 
   # ---------------------------------------------------------------------------
   # Job: Application Server — Custom App Metrics
