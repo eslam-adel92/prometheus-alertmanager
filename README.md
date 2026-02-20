@@ -109,6 +109,23 @@ Five pre-provisioned dashboards are included:
 
 ---
 
+## 🖥️ Remote Server Monitoring (Agent Setup)
+
+To monitor **external servers**, deploy the lightweight agent stack on each remote server. The agent runs only Node Exporter + cAdvisor and exposes metrics for the central Prometheus to scrape.
+
+```bash
+# On the remote server:
+cd agent/
+cp .env.example .env     # Optional: adjust ports
+docker compose up -d
+```
+
+Then add scrape targets in `prometheus/prometheus.yml` on the central server (see the commented-out examples at the bottom of the file).
+
+👉 **Full setup guide:** [`agent/README.md`](./agent/README.md)
+
+---
+
 ## 🔔 Alert Rules
 
 Alert rules are defined in [`prometheus/rules.yml`](./prometheus/rules.yml), organized by category:
@@ -193,10 +210,14 @@ external_labels:
 
 ```
 .
-├── docker-compose.yaml                    # All service definitions
+├── docker-compose.yaml                    # Central server service definitions
 ├── Dockerfile                             # Sample Go app build
 ├── server.go                              # Sample app source
 ├── go.mod / go.sum                        # Go dependencies
+├── agent/                                 # 🖥️ Remote server agent
+│   ├── docker-compose.yaml                # Agent services (Node Exporter + cAdvisor)
+│   ├── .env.example                       # Configurable ports
+│   └── README.md                          # Agent deployment guide
 ├── prometheus/
 │   ├── prometheus.yml                     # Scrape configs & targets
 │   └── rules.yml                          # Alert rules (host/disk/net/container)

@@ -1,0 +1,86 @@
+# =============================================================================
+# Docker Compose — Monitoring Agent
+# =============================================================================
+# Lightweight agent stack to be deployed on remote servers.
+# Exposes host and container metrics for the central Prometheus to scrape.
+#
+# Services:
+#   - Node Exporter : Host-level metrics (CPU, memory, disk, network)
+#   - cAdvisor      : Container-level metrics (per-container CPU, memory, I/O)
+#
+# Quick Start:
+#   cp .env.example .env    # Adjust ports if needed
+#   docker compose up -d
+#
+# The central Prometheus server must be configured to scrape:
+#   - <THIS_SERVER_IP>:${NODE_EXPORTER_PORT:-9100}  (Node Exporter)
+#   - <THIS_SERVER_IP>:${CADVISOR_PORT:-8080}        (cAdvisor)
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Node Exporter — Host-Level Metrics
+  # ---------------------------------------------------------------------------
+  # Exposes hardware and OS metrics from the host machine including:
+  #   - CPU usage, load averages, context switches
+  #   - Memory usage, swap, buffers/cache
+  #   - Disk space, I/O throughput
+  #   - Network interface traffic, errors, drops
+  #   - Filesystem mount points and usage
+  #
+  # The host's /proc, /sys, and / are bind-mounted read-only so node-exporter
+  # can read kernel metrics without modifying the host.
+  # ---------------------------------------------------------------------------
+  node-exporter:
+    image: prom/node-exporter:v1.7.0
+    container_name: monitoring-agent-node-exporter
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro          # Kernel process information
+      - /sys:/host/sys:ro            # Kernel device/driver information
+      - /:/rootfs:ro                 # Root filesystem for disk usage stats
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "${NODE_EXPORTER_PORT:-9100}:9100"
+    networks:
+      - monitoring-agent
+
+  # ---------------------------------------------------------------------------
+  # cAdvisor — Container-Level Metrics
+  # ---------------------------------------------------------------------------
+  # Google's Container Advisor exposes per-container resource usage metrics:
+  #   - Container CPU usage (user, system, total)
+  #   - Container memory usage (RSS, cache, working set, limit)
+  #   - Container network I/O (bytes received/transmitted per interface)
+  #   - Container block I/O (disk reads/writes per device)
+  #   - Container restarts and lifecycle events
+  #
+  # Required volume mounts:
+  #   /var/run/docker.sock : Access to Docker API for container discovery
+  #   /sys, /var/lib/docker : Kernel cgroup data and Docker storage metadata
+  #   /dev/disk : Disk device information for I/O metrics
+  # ---------------------------------------------------------------------------
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: monitoring-agent-cadvisor
+    restart: unless-stopped
+    privileged: true  # Required for full access to cgroup and device metrics
+    volumes:
+      - /:/rootfs:ro                          # Root filesystem (read-only)
+      - /var/run:/var/run:ro                  # Docker socket for container discovery
+      - /sys:/sys:ro                          # Kernel cgroup and device info
+      - /var/lib/docker/:/var/lib/docker:ro   # Docker storage driver metadata
+      - /dev/disk/:/dev/disk:ro               # Physical disk device info
+    ports:
+      - "${CADVISOR_PORT:-8080}:8080"
+    networks:
+      - monitoring-agent
+
+networks:
+  monitoring-agent:
+    driver: bridge

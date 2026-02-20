@@ -136,3 +136,40 @@ scrape_configs:
       - targets: ["server:8090"]
         labels:
           component: "application"
+
+  # ===========================================================================
+  # Remote Agent Scrape Targets
+  # ===========================================================================
+  # To monitor a remote server, deploy the agent/ stack on that server
+  # and uncomment + update the sections below.
+  #
+  # For each remote server, add TWO jobs:
+  #   1. node_exporter — host-level metrics
+  #   2. cadvisor      — container-level metrics
+  #
+  # Replace <REMOTE_IP> with the server's IP address or hostname.
+  # Replace <server-name> with a descriptive name (e.g., "web-server-1").
+  # ===========================================================================
+
+  # ---------------------------------------------------------------------------
+  # Remote Agent Example (uncomment and edit to add a remote server)
+  # ---------------------------------------------------------------------------
+  # - job_name: remote_node_exporter_<server-name>
+  #   scrape_interval: 10s
+  #   static_configs:
+  #     - targets: ["<REMOTE_IP>:9100"]
+  #       labels:
+  #         server: "<server-name>"
+  #         component: "infrastructure"
+  #
+  # - job_name: remote_cadvisor_<server-name>
+  #   scrape_interval: 10s
+  #   static_configs:
+  #     - targets: ["<REMOTE_IP>:8080"]
+  #       labels:
+  #         server: "<server-name>"
+  #         component: "infrastructure"
+  #   metric_relabel_configs:
+  #     - source_labels: [__name__]
+  #       regex: "container_(tasks_state|memory_failures_total)"
+  #       action: drop
