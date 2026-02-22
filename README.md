@@ -16,7 +16,7 @@ A production-ready Docker Compose monitoring stack built with **Prometheus**, **
 │  └─────┬────┘  └──────┬───────┘  └────┬─────┘               │
 │        │              │               │                     │
 │        └──────────────┬───────────────┘                     │
-│                       ▼                                    │
+│                       ▼                                     │
 │               ┌────────────────┐                            │
 │               │  Prometheus    │                            │
 │               │   (:9090)      │                            │
