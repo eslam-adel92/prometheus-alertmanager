@@ -36,7 +36,7 @@ groups:
         expr: >
           100 - (avg by(instance)
             (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100
-          ) > 80
+          ) > 70
         for: 5m
         labels:
           severity: warning
@@ -71,21 +71,21 @@ groups:
       # -----------------------------------------------------------------------
       # High Memory Usage
       # -----------------------------------------------------------------------
-      # Fires when available memory drops below 15% of total.
+      # Fires when available memory drops below 20% of total.
       # "Available" memory includes free + buffers + cached, which represents
       # memory that can be reclaimed by applications if needed.
       # -----------------------------------------------------------------------
       - alert: HostHighMemoryUsage
         expr: >
-          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 80
         for: 5m
         labels:
           severity: warning
           category: host
         annotations:
-          summary: "Host memory usage is above 85%"
+          summary: "Host memory usage is above 80%"
           description: >
-            Memory usage on {{ $labels.instance }} is above 85%.
+            Memory usage on {{ $labels.instance }} is above 80%.
             Current value: {{ $value | printf "%.1f" }}%.
             Available: {{ with printf "node_memory_MemAvailable_bytes{instance='%s'}" $labels.instance | query }}{{ . | first | value | humanize1024 }}{{ end }}.
 
@@ -119,19 +119,19 @@ groups:
       # -----------------------------------------------------------------------
       # Disk Space Low (Warning)
       # -----------------------------------------------------------------------
-      # Fires when any mounted filesystem has less than 15% free space.
+      # Fires when any mounted filesystem has less than 25% free space.
       # Excludes tmpfs and other pseudo-filesystems via fstype filter.
       # -----------------------------------------------------------------------
       - alert: HostDiskSpaceLow
         expr: >
           (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}
-          / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"})) * 100 > 85
+          / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"})) * 100 > 75
         for: 5m
         labels:
           severity: warning
           category: disk
         annotations:
-          summary: "Disk space is above 85% used"
+          summary: "Disk space is above 75% used"
           description: >
             Filesystem {{ $labels.mountpoint }} on {{ $labels.instance }}
             is {{ $value | printf "%.1f" }}% full.
@@ -140,19 +140,19 @@ groups:
       # -----------------------------------------------------------------------
       # Disk Space Critical
       # -----------------------------------------------------------------------
-      # Fires when any filesystem has less than 5% free space.
+      # Fires when any filesystem has less than 10% free space.
       # At this level, services may start failing due to write errors.
       # -----------------------------------------------------------------------
       - alert: HostDiskSpaceCritical
         expr: >
           (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}
-          / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"})) * 100 > 95
+          / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"})) * 100 > 90
         for: 2m
         labels:
           severity: critical
           category: disk
         annotations:
-          summary: "Disk space is critically low (>95% used)"
+          summary: "Disk space is critically low (>90% used)"
           description: >
             Filesystem {{ $labels.mountpoint }} on {{ $labels.instance }}
             is {{ $value | printf "%.1f" }}% full.

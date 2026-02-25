@@ -43,7 +43,7 @@ global:
 # -----------------------------------------------------------------------------
 route:
   # Default receiver for all alerts not matched by child routes
-  receiver: webhook_receiver
+  receiver: slack_critical
 
   # Group alerts by name, instance, and severity to reduce notification noise
   group_by: ["alertname", "instance", "severity"]
@@ -60,18 +60,25 @@ route:
   # ---------------------------------------------------------------------------
   routes:
     # Critical alerts — sent to both webhook and (optionally) a high-priority channel
-    - receiver: webhook_critical
-      matchers:
-        - severity="critical"
-      group_wait: 10s # Shorter wait for critical alerts — notify faster
-      repeat_interval: 1h # Repeat more frequently for critical alerts
-      continue: false # Stop processing routes after this match
+    # - receiver: webhook_critical
+    #   matchers:
+    #     - severity="critical"
+    #   group_wait: 10s # Shorter wait for critical alerts — notify faster
+    #   repeat_interval: 1h # Repeat more frequently for critical alerts
+    #   continue: false # Stop processing routes after this match
 
     # Warning alerts — sent to the default webhook
-    - receiver: webhook_receiver
+    # - receiver: webhook_receiver
+    #   matchers:
+    #     - severity="warning"
+    #   continue: false
+
+    - receiver: slack_critical
+      matchers:
+        - severity="critical"
+    - receiver: slack_warning
       matchers:
         - severity="warning"
-      continue: false
 
 # -----------------------------------------------------------------------------
 # Inhibition Rules
@@ -106,29 +113,51 @@ inhibit_rules:
 # -----------------------------------------------------------------------------
 receivers:
   # Default receiver for warning-level alerts
-  - name: webhook_receiver
-    webhook_configs:
-      - url: "https://webhook.site/614c3637-bc6b-4a85-9873-89b8fcbe3fb8"
-        send_resolved: true # Also notify when alerts are resolved
+  # - name: webhook_receiver
+  #   webhook_configs:
+  #     - url: "https://webhook.site/614c3637-bc6b-4a85-9873-89b8fcbe3fb8"
+  #       send_resolved: true # Also notify when alerts are resolved
 
   # High-priority receiver for critical alerts
   # TEMPLATE NOTE: In production, point this to a paging service (PagerDuty,
   # OpsGenie) in addition to or instead of a webhook.
-  - name: webhook_critical
-    webhook_configs:
-      - url: "https://webhook.site/614c3637-bc6b-4a85-9873-89b8fcbe3fb8"
-        send_resolved: true
+  # - name: webhook_critical
+  #   webhook_configs:
+  #     - url: "https://webhook.site/614c3637-bc6b-4a85-9873-89b8fcbe3fb8"
+  #       send_resolved: true
 
   # ---------------------------------------------------------------------------
   # Example: Slack Receiver (uncomment and configure)
   # ---------------------------------------------------------------------------
-  # - name: slack_notifications
-  #   slack_configs:
-  #     - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
-  #       channel: '#alerts'
-  #       title: '{{ .GroupLabels.alertname }}'
-  #       text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
-  #       send_resolved: true
+  # Warning alerts → Slack
+  - name: slack_warning
+    slack_configs:
+      - api_url: "https://hooks.slack.com/services/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"
+        channel: "#alerts"
+        title: "⚠️ [{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}"
+        text: >-
+          {{ range .Alerts }}
+          *Alert:* {{ .Labels.alertname }}
+          *Severity:* {{ .Labels.severity }}
+          *Instance:* {{ .Labels.instance }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+
+  # Critical alerts → Slack (separate so you can customize urgency)
+  - name: slack_critical
+    slack_configs:
+      - api_url: "https://hooks.slack.com/services/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"
+        channel: "#alerts"
+        title: "🔴 [{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}"
+        text: >-
+          {{ range .Alerts }}
+          *Alert:* {{ .Labels.alertname }}
+          *Severity:* {{ .Labels.severity }}
+          *Instance:* {{ .Labels.instance }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
 
   # ---------------------------------------------------------------------------
   # Example: Email Receiver (uncomment and configure)
