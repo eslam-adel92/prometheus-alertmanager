@@ -132,7 +132,7 @@ receivers:
   # Warning alerts → Slack
   - name: slack_warning
     slack_configs:
-      - api_url: "https://hooks.slack.com/services/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"
+      - api_url: ""
         channel: "#alerts"
         title: "⚠️ [{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}"
         text: >-
@@ -148,7 +148,7 @@ receivers:
   # Critical alerts → Slack (separate so you can customize urgency)
   - name: slack_critical
     slack_configs:
-      - api_url: "https://hooks.slack.com/services/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"
+      - api_url: ""
         channel: "#alerts"
         title: "🔴 [{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}"
         text: >-
