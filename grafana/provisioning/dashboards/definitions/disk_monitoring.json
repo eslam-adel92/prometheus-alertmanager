@@ -1,10 +1,13 @@
 {
-  "_comment_dashboard": "Disk Monitoring Dashboard — Monitors disk space usage, I/O throughput, and I/O utilization. Metrics sourced from node-exporter. Filters out pseudo-filesystems (tmpfs, overlay, squashfs) to show only real disk partitions.",
+  "_comment_dashboard": "Disk Monitoring Dashboard \u2014 Monitors disk space usage, I/O throughput, and I/O utilization. Metrics sourced from node-exporter. Filters out pseudo-filesystems (tmpfs, overlay, squashfs) to show only real disk partitions.",
   "annotations": {
     "list": [
       {
         "builtIn": 1,
-        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -20,42 +23,71 @@
   "links": [],
   "panels": [
     {
-      "_comment": "Row: Disk Space — Filesystem capacity and free space",
+      "_comment": "Row: Disk Space \u2014 Filesystem capacity and free space",
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
       "id": 100,
       "title": "Disk Space",
       "type": "row"
     },
     {
-      "_comment": "Disk Space Usage % — Gauge showing percentage used for each mounted filesystem. Excludes virtual filesystems (tmpfs, overlay, squashfs). Color thresholds: green (<70%), yellow (70-85%), orange (85-95%), red (>95%)",
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "_comment": "Disk Space Usage % \u2014 Gauge showing percentage used for each mounted filesystem. Excludes virtual filesystems (tmpfs, overlay, squashfs). Color thresholds: green (<70%), yellow (70-85%), orange (85-95%), red (>95%)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "max": 100,
           "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 70 },
-              { "color": "orange", "value": 85 },
-              { "color": "red", "value": 95 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 70
+              },
+              {
+                "color": "orange",
+                "value": 85
+              },
+              {
+                "color": "red",
+                "value": 95
+              }
             ]
           },
           "unit": "percent"
         },
         "overrides": []
       },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 1 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 1
+      },
       "id": 1,
       "options": {
         "minVizHeight": 75,
         "minVizWidth": 75,
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -64,8 +96,11 @@
       },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "(1 - node_filesystem_avail_bytes{fstype!~'tmpfs|overlay|squashfs'} / node_filesystem_size_bytes{fstype!~'tmpfs|overlay|squashfs'}) * 100",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(1 - node_filesystem_avail_bytes{server=~'$server', fstype!~'tmpfs|overlay|squashfs'} / node_filesystem_size_bytes{server=~'$server', fstype!~'tmpfs|overlay|squashfs'}) * 100",
           "legendFormat": "{{ mountpoint }}",
           "refId": "A"
         }
@@ -74,24 +109,43 @@
       "type": "gauge"
     },
     {
-      "_comment": "Disk Free Space — Shows available disk space in bytes for each mount point. Useful for absolute free capacity alongside the percentage gauge.",
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "_comment": "Disk Free Space \u2014 Shows available disk space in bytes for each mount point. Useful for absolute free capacity alongside the percentage gauge.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "orange", "value": 5368709120 },
-              { "color": "green", "value": 21474836480 }
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 5368709120
+              },
+              {
+                "color": "green",
+                "value": 21474836480
+              }
             ]
           },
           "unit": "bytes"
         },
         "overrides": []
       },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 1 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 1
+      },
       "id": 2,
       "options": {
         "colorMode": "value",
@@ -99,15 +153,20 @@
         "justifyMode": "center",
         "textMode": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         }
       },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "node_filesystem_avail_bytes{fstype!~'tmpfs|overlay|squashfs'}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "node_filesystem_avail_bytes{server=~'$server', fstype!~'tmpfs|overlay|squashfs'}",
           "legendFormat": "{{ mountpoint }}",
           "refId": "A"
         }
@@ -116,11 +175,16 @@
       "type": "stat"
     },
     {
-      "_comment": "Disk Space Usage Over Time — Time-series showing how disk usage changes over time for each mountpoint. Useful for spotting trends and predicting when disks will fill.",
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "_comment": "Disk Space Usage Over Time \u2014 Time-series showing how disk usage changes over time for each mountpoint. Useful for spotting trends and predicting when disks will fill.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "axisBorderShow": false,
             "axisCenteredZero": false,
@@ -131,46 +195,80 @@
             "drawStyle": "line",
             "fillOpacity": 20,
             "gradientMode": "opacity",
-            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
             "insertNulls": false,
             "lineInterpolation": "smooth",
             "lineWidth": 2,
             "pointSize": 5,
-            "scaleDistribution": { "type": "linear" },
+            "scaleDistribution": {
+              "type": "linear"
+            },
             "showPoints": "never",
             "spanNulls": false,
-            "stacking": { "group": "A", "mode": "none" },
-            "thresholdsStyle": { "mode": "line" }
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "line"
+            }
           },
           "max": 100,
           "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "transparent", "value": null },
-              { "color": "orange", "value": 85 },
-              { "color": "red", "value": 95 }
+              {
+                "color": "transparent",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 85
+              },
+              {
+                "color": "red",
+                "value": 95
+              }
             ]
           },
           "unit": "percent"
         },
         "overrides": []
       },
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 9 },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
       "id": 3,
       "options": {
         "legend": {
-          "calcs": ["mean", "lastNotNull"],
+          "calcs": [
+            "mean",
+            "lastNotNull"
+          ],
           "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
-        "tooltip": { "mode": "multi", "sort": "desc" }
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "(1 - node_filesystem_avail_bytes{fstype!~'tmpfs|overlay|squashfs'} / node_filesystem_size_bytes{fstype!~'tmpfs|overlay|squashfs'}) * 100",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(1 - node_filesystem_avail_bytes{server=~'$server', fstype!~'tmpfs|overlay|squashfs'} / node_filesystem_size_bytes{server=~'$server', fstype!~'tmpfs|overlay|squashfs'}) * 100",
           "legendFormat": "{{ mountpoint }}",
           "refId": "A"
         }
@@ -179,19 +277,29 @@
       "type": "timeseries"
     },
     {
-      "_comment": "Row: Disk I/O — Read/write throughput and device utilization",
+      "_comment": "Row: Disk I/O \u2014 Read/write throughput and device utilization",
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 17 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
       "id": 101,
       "title": "Disk I/O",
       "type": "row"
     },
     {
-      "_comment": "Disk Read I/O — Bytes read per second from each block device. Uses irate() for per-second accuracy. High read I/O may indicate database scans, log processing, or cache misses.",
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "_comment": "Disk Read I/O \u2014 Bytes read per second from each block device. Uses irate() for per-second accuracy. High read I/O may indicate database scans, log processing, or cache misses.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "axisBorderShow": false,
             "axisCenteredZero": false,
@@ -202,40 +310,70 @@
             "drawStyle": "line",
             "fillOpacity": 20,
             "gradientMode": "opacity",
-            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
             "insertNulls": false,
             "lineInterpolation": "smooth",
             "lineWidth": 2,
             "pointSize": 5,
-            "scaleDistribution": { "type": "linear" },
+            "scaleDistribution": {
+              "type": "linear"
+            },
             "showPoints": "never",
             "spanNulls": false,
-            "stacking": { "group": "A", "mode": "none" },
-            "thresholdsStyle": { "mode": "off" }
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "thresholds": {
             "mode": "absolute",
-            "steps": [{ "color": "green", "value": null }]
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
           },
           "unit": "Bps"
         },
         "overrides": []
       },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 18 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 18
+      },
       "id": 4,
       "options": {
         "legend": {
-          "calcs": ["mean", "max"],
+          "calcs": [
+            "mean",
+            "max"
+          ],
           "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
-        "tooltip": { "mode": "multi", "sort": "desc" }
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "irate(node_disk_read_bytes_total[5m])",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "irate(node_disk_read_bytes_total{server=~'$server'}[5m])",
           "legendFormat": "{{ device }}",
           "refId": "A"
         }
@@ -244,11 +382,16 @@
       "type": "timeseries"
     },
     {
-      "_comment": "Disk Write I/O — Bytes written per second to each block device. High sustained write I/O may indicate heavy logging, database writes, or backup operations.",
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "_comment": "Disk Write I/O \u2014 Bytes written per second to each block device. High sustained write I/O may indicate heavy logging, database writes, or backup operations.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "axisBorderShow": false,
             "axisCenteredZero": false,
@@ -259,40 +402,70 @@
             "drawStyle": "line",
             "fillOpacity": 20,
             "gradientMode": "opacity",
-            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
             "insertNulls": false,
             "lineInterpolation": "smooth",
             "lineWidth": 2,
             "pointSize": 5,
-            "scaleDistribution": { "type": "linear" },
+            "scaleDistribution": {
+              "type": "linear"
+            },
             "showPoints": "never",
             "spanNulls": false,
-            "stacking": { "group": "A", "mode": "none" },
-            "thresholdsStyle": { "mode": "off" }
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "thresholds": {
             "mode": "absolute",
-            "steps": [{ "color": "green", "value": null }]
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
           },
           "unit": "Bps"
         },
         "overrides": []
       },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 18 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 18
+      },
       "id": 5,
       "options": {
         "legend": {
-          "calcs": ["mean", "max"],
+          "calcs": [
+            "mean",
+            "max"
+          ],
           "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
-        "tooltip": { "mode": "multi", "sort": "desc" }
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "irate(node_disk_written_bytes_total[5m])",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "irate(node_disk_written_bytes_total{server=~'$server'}[5m])",
           "legendFormat": "{{ device }}",
           "refId": "A"
         }
@@ -301,11 +474,16 @@
       "type": "timeseries"
     },
     {
-      "_comment": "Disk I/O Utilization — Shows the percentage of time each disk device spends doing I/O operations. 100% means the device is saturated and is a potential bottleneck. Uses node_disk_io_time_seconds_total counter.",
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "_comment": "Disk I/O Utilization \u2014 Shows the percentage of time each disk device spends doing I/O operations. 100% means the device is saturated and is a potential bottleneck. Uses node_disk_io_time_seconds_total counter.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "axisBorderShow": false,
             "axisCenteredZero": false,
@@ -316,45 +494,77 @@
             "drawStyle": "line",
             "fillOpacity": 15,
             "gradientMode": "none",
-            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
             "insertNulls": false,
             "lineInterpolation": "smooth",
             "lineWidth": 2,
             "pointSize": 5,
-            "scaleDistribution": { "type": "linear" },
+            "scaleDistribution": {
+              "type": "linear"
+            },
             "showPoints": "never",
             "spanNulls": false,
-            "stacking": { "group": "A", "mode": "none" },
-            "thresholdsStyle": { "mode": "line" }
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "line"
+            }
           },
           "max": 100,
           "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "transparent", "value": null },
-              { "color": "red", "value": 80 }
+              {
+                "color": "transparent",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
             ]
           },
           "unit": "percent"
         },
         "overrides": []
       },
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 26 },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      },
       "id": 6,
       "options": {
         "legend": {
-          "calcs": ["mean", "max", "lastNotNull"],
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
           "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
-        "tooltip": { "mode": "multi", "sort": "desc" }
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
       "targets": [
         {
-          "datasource": { "type": "prometheus", "uid": "${datasource}" },
-          "expr": "irate(node_disk_io_time_seconds_total[5m]) * 100",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "irate(node_disk_io_time_seconds_total{server=~'$server'}[5m]) * 100",
           "legendFormat": "{{ device }}",
           "refId": "A"
         }
@@ -364,11 +574,15 @@
     }
   ],
   "schemaVersion": 39,
-  "tags": ["disk", "storage", "node-exporter"],
+  "tags": [
+    "disk",
+    "storage",
+    "node-exporter"
+  ],
   "templating": {
     "list": [
       {
-        "_comment": "Datasource variable — makes this dashboard reusable across deployments with different Prometheus instances",
+        "_comment": "Datasource variable \u2014 makes this dashboard reusable across deployments with different Prometheus instances",
         "current": {
           "selected": false,
           "text": "prometheus",
@@ -385,10 +599,38 @@
         "regex": "",
         "skipUrlSync": false,
         "type": "datasource"
+      },
+      {
+        "_comment": "Server variable \u2014 allows filtering metrics by server. Populated from the 'server' label on all scrape targets.",
+        "current": {
+          "selected": true,
+          "text": "localhost",
+          "value": "localhost"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(up{job=~\"node_exporter|remote_node_exporter_.*\"}, server)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Server",
+        "multi": true,
+        "name": "server",
+        "options": [],
+        "query": "label_values(up{job=~\"node_exporter|remote_node_exporter_.*\"}, server)",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
       }
     ]
   },
-  "time": { "from": "now-1h", "to": "now" },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
   "timepicker": {},
   "timezone": "browser",
   "title": "Disk Monitoring",

@@ -75,6 +75,7 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
         labels:
+          server: "localhost"
           component: "monitoring" # Custom label for grouping in dashboards
 
   # ---------------------------------------------------------------------------
@@ -91,6 +92,7 @@ scrape_configs:
     static_configs:
       - targets: ["node-exporter:9100"]
         labels:
+          server: "localhost"
           component: "infrastructure" # Custom label for grouping
 
   # ---------------------------------------------------------------------------
@@ -113,6 +115,7 @@ scrape_configs:
     static_configs:
       - targets: ["cadvisor:8080"]
         labels:
+          server: "localhost"
           component: "infrastructure"
     # Drop noisy/high-cardinality metrics to save storage and improve performance
     metric_relabel_configs:
@@ -135,6 +138,7 @@ scrape_configs:
     static_configs:
       - targets: ["server:8090"]
         labels:
+          server: "localhost"
           component: "application"
 
   # ===========================================================================
@@ -154,22 +158,22 @@ scrape_configs:
   # ---------------------------------------------------------------------------
   # Remote Agent Example (uncomment and edit to add a remote server)
   # ---------------------------------------------------------------------------
-  # - job_name: remote_node_exporter_<server-name>
-  #   scrape_interval: 10s
-  #   static_configs:
-  #     - targets: ["<REMOTE_IP>:9100"]
-  #       labels:
-  #         server: "<server-name>"
-  #         component: "infrastructure"
-  #
-  # - job_name: remote_cadvisor_<server-name>
-  #   scrape_interval: 10s
-  #   static_configs:
-  #     - targets: ["<REMOTE_IP>:8080"]
-  #       labels:
-  #         server: "<server-name>"
-  #         component: "infrastructure"
-  #   metric_relabel_configs:
-  #     - source_labels: [__name__]
-  #       regex: "container_(tasks_state|memory_failures_total)"
-  #       action: drop
+  - job_name: remote_node_exporter_ubuntu-vbox
+    scrape_interval: 10s
+    static_configs:
+      - targets: ["192.168.100.50:9100"]
+        labels:
+          server: "ubuntu-vbox"
+          component: "infrastructure"
+
+  - job_name: remote_cadvisor_ubuntu-vbox
+    scrape_interval: 10s
+    static_configs:
+      - targets: ["192.168.100.50:8080"]
+        labels:
+          server: "ubuntu-vbox"
+          component: "infrastructure"
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: "container_(tasks_state|memory_failures_total)"
+        action: drop
