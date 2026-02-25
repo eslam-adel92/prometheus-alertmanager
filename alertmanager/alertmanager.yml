@@ -140,6 +140,7 @@ receivers:
           *Alert:* {{ .Labels.alertname }}
           *Severity:* {{ .Labels.severity }}
           *Instance:* {{ .Labels.instance }}
+          *Host:* {{ .Labels.host }}
           *Description:* {{ .Annotations.description }}
           {{ end }}
         send_resolved: true
@@ -155,6 +156,7 @@ receivers:
           *Alert:* {{ .Labels.alertname }}
           *Severity:* {{ .Labels.severity }}
           *Instance:* {{ .Labels.instance }}
+          *Host:* {{ .Labels.host }}
           *Description:* {{ .Annotations.description }}
           {{ end }}
         send_resolved: true
