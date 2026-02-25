@@ -161,13 +161,13 @@ groups:
       # -----------------------------------------------------------------------
       # Disk I/O High Utilization
       # -----------------------------------------------------------------------
-      # Fires when a disk device is busy (>80% I/O utilization) for 10 min.
+      # Fires when a disk device is busy (>80% I/O utilization) for 5 min.
       # High utilization indicates the disk is a potential bottleneck.
       # -----------------------------------------------------------------------
       - alert: HostDiskIOHigh
         expr: >
           irate(node_disk_io_time_seconds_total[5m]) * 100 > 80
-        for: 10m
+        for: 5m
         labels:
           severity: warning
           category: disk
@@ -175,7 +175,7 @@ groups:
           summary: "Disk I/O utilization is high"
           description: >
             Disk {{ $labels.device }} on {{ $labels.instance }} has been
-            above 80% I/O utilization for 10 minutes.
+            above 80% I/O utilization for 5 minutes.
             Current: {{ $value | printf "%.1f" }}%.
 
       # -----------------------------------------------------------------------
