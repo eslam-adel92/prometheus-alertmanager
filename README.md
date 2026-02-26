@@ -1,6 +1,6 @@
 # Prometheus Monitoring Stack — Comprehensive Host, Network, Disk & Container Monitoring
 
-A production-ready Docker Compose monitoring stack built with **Prometheus**, **Grafana**, **Alertmanager**, **Node Exporter**, and **cAdvisor**. Designed to be **template-ready** — easily pluggable into any Docker-based environment.
+A production-ready Docker Compose monitoring stack built with **Prometheus**, **Grafana**, **Alertmanager**, **Loki**, **Node Exporter**, and **cAdvisor**. Designed to be **template-ready** — easily pluggable into any Docker-based environment.
 
 ---
 
@@ -42,7 +42,9 @@ A production-ready Docker Compose monitoring stack built with **Prometheus**, **
 | **node-exporter** | `prom/node-exporter:v1.7.0`        | `9100` | Host-level metrics (CPU, memory, disk, network)           |
 | **cadvisor**      | `gcr.io/cadvisor/cadvisor:v0.49.1` | `8080` | Per-container metrics (CPU, memory, network, I/O)         |
 | **alertmanager**  | `prom/alertmanager:v0.27.0`        | `9093` | Alert routing, grouping, and notifications                |
-| **grafana**       | `grafana/grafana:10.4.0`           | `3000` | Visualization dashboards (5 pre-provisioned)              |
+| **grafana**       | `grafana/grafana:10.4.0`           | `3000` | Visualization dashboards (6 pre-provisioned)              |
+| **loki**          | `grafana/loki:2.9.4`               | `3100` | Log aggregation, storage, and querying via LogQL          |
+| **promtail**      | `grafana/promtail:2.9.4`           | —      | Log collector — tails container logs and pushes to Loki   |
 
 ---
 
@@ -104,6 +106,12 @@ Five pre-provisioned dashboards are included:
 ### 5. Ping Request Count (Original)
 
 - Tracks the demo `ping_request_count` metric from the sample app
+
+### 6. Container Logs (Loki)
+
+- **Log Volume** — Bar chart showing log line rate per container over time
+- **Log Stream** — Live log viewer with filtering by server and container
+- Supports `$server` and `$container` dropdowns for filtering
 
 > **Template Note:** All dashboards use a `$datasource` template variable, so they can be imported into any Grafana instance with any Prometheus datasource.
 
@@ -215,26 +223,34 @@ external_labels:
 ├── server.go                              # Sample app source
 ├── go.mod / go.sum                        # Go dependencies
 ├── agent/                                 # 🖥️ Remote server agent
-│   ├── docker-compose.yaml                # Agent services (Node Exporter + cAdvisor)
-│   ├── .env.example                       # Configurable ports
-│   └── README.md                          # Agent deployment guide
+│   ├── docker-compose.yaml                # Agent services (Node Exporter + cAdvisor + Promtail)
+│   ├── .env.example                       # Configurable ports, LOKI_URL, SERVER_NAME
+│   ├── README.md                          # Agent deployment guide
+│   └── promtail/
+│       └── promtail-config.yaml           # Remote Promtail config
 ├── prometheus/
 │   ├── prometheus.yml                     # Scrape configs & targets
 │   └── rules.yml                          # Alert rules (host/disk/net/container)
 ├── alertmanager/
 │   └── alertmanager.yml                   # Alert routing & receivers
+├── loki/
+│   └── loki-config.yaml                   # Loki server config (storage, retention)
+├── promtail/
+│   └── promtail-config.yaml               # Local Promtail config (Docker log discovery)
 └── grafana/
     └── provisioning/
         ├── datasources/
-        │   └── datasource.yaml            # Prometheus datasource config
+        │   ├── datasource.yaml             # Prometheus datasource config
+        │   └── loki.yaml                   # Loki datasource config
         └── dashboards/
-            ├── dashboard.yaml             # Dashboard provisioner config
+            ├── dashboard.yaml              # Dashboard provisioner config
             └── definitions/
-                ├── ping_request_count.json # App metrics dashboard
-                ├── host_resources.json     # Host CPU/memory/load dashboard
-                ├── network_traffic.json    # Network bandwidth/errors dashboard
-                ├── disk_monitoring.json    # Disk space/I/O dashboard
-                └── container_monitoring.json # Container resources dashboard
+                ├── ping_request_count.json  # App metrics dashboard
+                ├── host_resources.json      # Host CPU/memory/load dashboard
+                ├── network_traffic.json     # Network bandwidth/errors dashboard
+                ├── disk_monitoring.json     # Disk space/I/O dashboard
+                ├── container_monitoring.json # Container resources dashboard
+                └── container_logs.json      # Container logs dashboard (Loki)
 ```
 
 ---

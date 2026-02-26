@@ -1,0 +1,49 @@
+# =============================================================================
+# Promtail Configuration — Remote Agent
+# =============================================================================
+# Promtail running on a remote server that pushes container logs to the
+# central Loki instance via HTTP.
+#
+# Environment variables (set in .env):
+#   LOKI_URL     : Central Loki push endpoint (e.g., http://192.168.1.100:3100)
+#   SERVER_NAME  : Identifier for this server (e.g., "web-server-1")
+#
+# Labels added to each log line:
+#   - job: "docker"
+#   - server: from SERVER_NAME env var
+#   - container_name: from Docker container name
+#   - compose_service: from Docker Compose service name
+#   - compose_project: from Docker Compose project name
+# =============================================================================
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+# -----------------------------------------------------------------------------
+# Push logs to the central Loki server
+# The URL is templated — set LOKI_URL in .env or environment
+# -----------------------------------------------------------------------------
+clients:
+  - url: ${LOKI_URL}/loki/api/v1/push
+
+scrape_configs:
+  - job_name: docker
+    static_labels:
+      server: ${SERVER_NAME}
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      - source_labels: ["__meta_docker_container_name"]
+        regex: "/(.*)"
+        target_label: "container_name"
+      - source_labels:
+          ["__meta_docker_container_label_com_docker_compose_service"]
+        target_label: "compose_service"
+      - source_labels:
+          ["__meta_docker_container_label_com_docker_compose_project"]
+        target_label: "compose_project"

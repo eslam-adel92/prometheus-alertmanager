@@ -1,6 +1,6 @@
 # Monitoring Agent
 
-Lightweight monitoring agent that runs on remote servers and exposes host + container metrics for the central Prometheus server to scrape.
+Lightweight monitoring agent that runs on remote servers and exposes host + container metrics for the central Prometheus server to scrape, and ships container logs to the central Loki instance.
 
 ## Services
 
@@ -8,6 +8,7 @@ Lightweight monitoring agent that runs on remote servers and exposes host + cont
 | ----------------- | ------ | ------------------------------------------- |
 | **Node Exporter** | `9100` | Host CPU, memory, disk, network metrics     |
 | **cAdvisor**      | `8080` | Per-container CPU, memory, disk I/O metrics |
+| **Promtail**      | —      | Ships container logs to central Loki        |
 
 ## Quick Start
 
@@ -16,7 +17,13 @@ Lightweight monitoring agent that runs on remote servers and exposes host + cont
 ```bash
 # Copy this agent/ directory to the remote server, then:
 cd agent/
-cp .env.example .env     # Optional: adjust ports if 9100/8080 are in use
+cp .env.example .env
+
+# Edit .env — set the central Loki URL and server name:
+#   LOKI_URL=http://<CENTRAL_SERVER_IP>:3100
+#   SERVER_NAME=<your-server-name>
+nano .env
+
 docker compose up -d
 ```
 
@@ -96,9 +103,16 @@ Then update the corresponding targets in the central `prometheus.yml` to match.
 Ensure the central Prometheus server can reach these ports on the remote server:
 
 ```bash
-# Example: allow Prometheus to scrape (replace with your firewall tool)
+# Example: allow Prometheus to scrape metrics + Promtail to push logs
 sudo firewall-cmd --permanent --add-port=9100/tcp
 sudo firewall-cmd --permanent --add-port=8080/tcp
+sudo firewall-cmd --reload
+```
+
+On the **central server**, ensure port 3100 is open for Promtail push:
+
+```bash
+sudo firewall-cmd --permanent --add-port=3100/tcp
 sudo firewall-cmd --reload
 ```
 

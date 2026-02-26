@@ -181,6 +181,43 @@ services:
       # Named volume for persistent Grafana data (users, settings, annotations)
       - grafana_data:/var/lib/grafana
 
+  # ---------------------------------------------------------------------------
+  # Loki — Log Aggregation
+  # ---------------------------------------------------------------------------
+  # Loki receives, stores, and indexes container logs pushed by Promtail.
+  # Queryable via LogQL in Grafana's Explore view and log dashboards.
+  #
+  # Port 3100 must be accessible from remote Promtail agents.
+  # ---------------------------------------------------------------------------
+  loki:
+    image: grafana/loki:2.9.4
+    restart: unless-stopped
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/loki-config.yaml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/loki-config.yaml
+    ports:
+      - "3100:3100"
+
+  # ---------------------------------------------------------------------------
+  # Promtail — Log Collector (Local)
+  # ---------------------------------------------------------------------------
+  # Discovers Docker containers on this host, tails their log files,
+  # and pushes them to Loki with container metadata labels.
+  #
+  # Volume mounts:
+  #   /var/run/docker.sock : Docker API for container discovery
+  #   /var/lib/docker/containers : Container log files
+  # ---------------------------------------------------------------------------
+  promtail:
+    image: grafana/promtail:2.9.4
+    restart: unless-stopped
+    volumes:
+      - ./promtail/promtail-config.yaml:/etc/promtail/promtail-config.yaml
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/promtail-config.yaml
+
 # =============================================================================
 # Named Volumes
 # =============================================================================
@@ -190,3 +227,4 @@ services:
 volumes:
   prometheus_data:    # Stores Prometheus TSDB data (time-series metrics)
   grafana_data:       # Stores Grafana databases (dashboards, users, settings)
+  loki_data:          # Stores Loki log data and indexes

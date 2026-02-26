@@ -1,0 +1,198 @@
+{
+  "_comment_dashboard": "Container Logs Dashboard — Explore and filter logs from all Docker containers across servers. Uses Loki as the log datasource. Supports filtering by server identifier and container name.",
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "_comment": "Row: Log Volume — Shows log line counts over time",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Log Volume",
+      "type": "row"
+    },
+    {
+      "_comment": "Log Volume Over Time — Bar chart showing the rate of log lines per container over time. Helps identify logging spikes and noisy containers.",
+      "datasource": { "type": "loki", "uid": "${loki_datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Lines/sec",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 50,
+            "gradientMode": "opacity",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "normal" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 1 },
+      "id": 1,
+      "options": {
+        "legend": {
+          "calcs": ["sum"],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "${loki_datasource}" },
+          "expr": "sum by(container_name) (rate({server=~\"$server\", container_name=~\"$container\"} | __error__=\"\" [1m]))",
+          "legendFormat": "{{ container_name }}",
+          "refId": "A"
+        }
+      ],
+      "title": "Log Volume Over Time",
+      "type": "timeseries"
+    },
+    {
+      "_comment": "Row: Log Stream — Live log viewer",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 7 },
+      "id": 101,
+      "title": "Log Stream",
+      "type": "row"
+    },
+    {
+      "_comment": "Container Logs — Shows log lines from selected containers. Supports text search, log level coloring, and label filtering.",
+      "datasource": { "type": "loki", "uid": "${loki_datasource}" },
+      "gridPos": { "h": 18, "w": 24, "x": 0, "y": 8 },
+      "id": 2,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "${loki_datasource}" },
+          "expr": "{server=~\"$server\", container_name=~\"$container\"}",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Container Logs",
+      "type": "logs"
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["logs", "containers", "loki"],
+  "templating": {
+    "list": [
+      {
+        "_comment": "Loki datasource variable for portability",
+        "current": {
+          "selected": false,
+          "text": "Loki",
+          "value": "Loki"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Loki Datasource",
+        "multi": false,
+        "name": "loki_datasource",
+        "options": [],
+        "query": "loki",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "_comment": "Server variable — filter logs by server (localhost, remote, etc.)",
+        "current": {
+          "selected": true,
+          "text": "localhost",
+          "value": "localhost"
+        },
+        "datasource": { "type": "loki", "uid": "${loki_datasource}" },
+        "definition": "label_values(server)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Server",
+        "multi": true,
+        "name": "server",
+        "options": [],
+        "query": "label_values(server)",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "_comment": "Container variable — filter logs by container name",
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": { "type": "loki", "uid": "${loki_datasource}" },
+        "definition": "label_values({server=~\"$server\"}, container_name)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Container",
+        "multi": true,
+        "name": "container",
+        "options": [],
+        "query": "label_values({server=~\"$server\"}, container_name)",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Container Logs",
+  "uid": "container-logs",
+  "version": 1,
+  "weekStart": ""
+}

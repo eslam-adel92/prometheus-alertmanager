@@ -1,0 +1,69 @@
+# =============================================================================
+# Promtail Configuration — Central Server
+# =============================================================================
+# Promtail is a log collector that discovers Docker containers on this host,
+# tails their log files, and pushes them to Loki.
+#
+# Log discovery:
+#   Promtail reads logs from /var/lib/docker/containers/<id>/<id>-json.log
+#   and auto-discovers containers via the Docker socket.
+#
+# Labels added to each log line:
+#   - job: "docker"
+#   - server: "localhost"
+#   - container_name: from Docker container name
+#   - compose_service: from Docker Compose service name
+#   - compose_project: from Docker Compose project name
+# =============================================================================
+
+server:
+  http_listen_port: 9080 # Promtail status/metrics endpoint
+  grpc_listen_port: 0 # Disable gRPC (not needed for push mode)
+
+# -----------------------------------------------------------------------------
+# Positions File
+# -----------------------------------------------------------------------------
+# Tracks the last read position for each log file so Promtail can resume
+# after restarts without re-sending logs.
+# -----------------------------------------------------------------------------
+positions:
+  filename: /tmp/positions.yaml
+
+# -----------------------------------------------------------------------------
+# Loki Client
+# -----------------------------------------------------------------------------
+# Pushes logs to the central Loki instance.
+# In Docker Compose, "loki" resolves to the Loki container.
+# -----------------------------------------------------------------------------
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+# -----------------------------------------------------------------------------
+# Scrape Configs
+# -----------------------------------------------------------------------------
+# Discovers Docker containers and tails their log files.
+# Uses Docker service discovery for automatic container detection.
+# -----------------------------------------------------------------------------
+scrape_configs:
+  - job_name: docker
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          server: localhost
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      # Use the container name as a label
+      - source_labels: ["__meta_docker_container_name"]
+        regex: "/(.*)"
+        target_label: "container_name"
+      # Add compose service name
+      - source_labels:
+          ["__meta_docker_container_label_com_docker_compose_service"]
+        target_label: "compose_service"
+      # Add compose project name
+      - source_labels:
+          ["__meta_docker_container_label_com_docker_compose_project"]
+        target_label: "compose_project"
