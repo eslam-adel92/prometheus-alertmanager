@@ -76,7 +76,7 @@
       "targets": [
         {
           "datasource": { "type": "loki", "uid": "${loki_datasource}" },
-          "expr": "sum by(container_name) (rate({filename=~\"/.+\", server=~\"$server\", container_name=~\"$container\"} | __error__=\"\" [1m]))",
+          "expr": "sum by(container_name) (rate({server=~\"$server\", container_name=~\"$container\"} | __error__=\"\" [1m]))",
           "legendFormat": "{{ container_name }}",
           "refId": "A"
         }
@@ -110,7 +110,7 @@
       "targets": [
         {
           "datasource": { "type": "loki", "uid": "${loki_datasource}" },
-          "expr": "{filename=~\"/.+\", server=~\"$server\", container_name=~\"$container\"}",
+          "expr": "{server=~\"$server\", container_name=~\"$container\"}",
           "legendFormat": "",
           "refId": "A"
         }
@@ -158,6 +158,7 @@
         "name": "server",
         "options": [],
         "query": "label_values(server)",
+        "allValue": ".+",
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
@@ -172,14 +173,15 @@
           "value": "$__all"
         },
         "datasource": { "type": "loki", "uid": "${loki_datasource}" },
-        "definition": "label_values({filename=~\"/.+\", server=~\"$server\"}, container_name)",
+        "definition": "label_values({server=~\"$server\"}, container_name)",
         "hide": 0,
         "includeAll": true,
         "label": "Container",
         "multi": true,
         "name": "container",
         "options": [],
-        "query": "label_values({filename=~\"/.+\", server=~\"$server\"}, container_name)",
+        "query": "label_values({server=~\"$server\"}, container_name)",
+        "allValue": ".+",
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
