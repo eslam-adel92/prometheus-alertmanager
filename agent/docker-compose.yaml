@@ -33,7 +33,7 @@ services:
   # can read kernel metrics without modifying the host.
   # ---------------------------------------------------------------------------
   node-exporter:
-    image: prom/node-exporter:v1.7.0
+    image: prom/node-exporter:v1.10.2
     container_name: monitoring-agent-node-exporter
     restart: unless-stopped
     volumes:
@@ -66,7 +66,7 @@ services:
   #   /dev/disk : Disk device information for I/O metrics
   # ---------------------------------------------------------------------------
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    image: ghcr.io/google/cadvisor:0.56.2
     container_name: monitoring-agent-cadvisor
     restart: unless-stopped
     privileged: true  # Required for full access to cgroup and device metrics
@@ -92,7 +92,7 @@ services:
   #   SERVER_NAME : Identifier for this server in log labels
   # ---------------------------------------------------------------------------
   promtail:
-    image: grafana/promtail:2.9.4
+    image: grafana/promtail:3.6.7
     container_name: monitoring-agent-promtail
     restart: unless-stopped
     environment:

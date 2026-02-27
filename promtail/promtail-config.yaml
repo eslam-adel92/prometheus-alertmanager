@@ -46,15 +46,14 @@ clients:
 # -----------------------------------------------------------------------------
 scrape_configs:
   - job_name: docker
-    static_configs:
-      - targets:
-          - localhost
-        labels:
-          server: localhost
+    # (Removed unused static_configs)
     docker_sd_configs:
       - host: unix:///var/run/docker.sock
         refresh_interval: 5s
     relabel_configs:
+      # Add server label to identify this host
+      - target_label: "server"
+        replacement: "localhost"
       # Use the container name as a label
       - source_labels: ["__meta_docker_container_name"]
         regex: "/(.*)"

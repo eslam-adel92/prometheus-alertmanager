@@ -48,7 +48,7 @@ services:
   #   --web.enable-lifecycle : Enables /-/reload endpoint for hot-reloading config
   # ---------------------------------------------------------------------------
   prometheus:
-    image: prom/prometheus:v2.45.3
+    image: prom/prometheus:v3.10.0
     restart: unless-stopped
     volumes:
       # Mount the local prometheus/ directory containing prometheus.yml and rules.yml
@@ -80,7 +80,7 @@ services:
   # mount-point exclusion filter removes virtual filesystems to avoid noise.
   # ---------------------------------------------------------------------------
   node-exporter:
-    image: prom/node-exporter:v1.7.0
+    image: prom/node-exporter:v1.10.2
     restart: unless-stopped
     volumes:
       - /proc:/host/proc:ro          # Kernel process information
@@ -115,7 +115,7 @@ services:
   # adjust the socket path and storage directories accordingly.
   # ---------------------------------------------------------------------------
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    image: ghcr.io/google/cadvisor:0.56.2
     restart: unless-stopped
     privileged: true  # Required for full access to cgroup and device metrics
     volumes:
@@ -142,7 +142,7 @@ services:
   # notification endpoints (webhook URLs, Slack tokens, email SMTP, etc.)
   # ---------------------------------------------------------------------------
   alertmanager:
-    image: prom/alertmanager:v0.27.0
+    image: prom/alertmanager:v0.31.1
     restart: unless-stopped
     volumes:
       - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
@@ -167,7 +167,7 @@ services:
   # authentication (LDAP, OAuth, etc.) via environment variables or grafana.ini.
   # ---------------------------------------------------------------------------
   grafana:
-    image: grafana/grafana:10.4.0
+    image: grafana/grafana:12.4.0
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -190,7 +190,7 @@ services:
   # Port 3100 must be accessible from remote Promtail agents.
   # ---------------------------------------------------------------------------
   loki:
-    image: grafana/loki:2.9.4
+    image: grafana/loki:3.6.7
     restart: unless-stopped
     volumes:
       - ./loki/loki-config.yaml:/etc/loki/loki-config.yaml
@@ -210,7 +210,7 @@ services:
   #   /var/lib/docker/containers : Container log files
   # ---------------------------------------------------------------------------
   promtail:
-    image: grafana/promtail:2.9.4
+    image: grafana/promtail:3.6.7
     restart: unless-stopped
     volumes:
       - ./promtail/promtail-config.yaml:/etc/promtail/promtail-config.yaml
