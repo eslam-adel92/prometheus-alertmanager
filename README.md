@@ -50,14 +50,20 @@ A production-ready Docker Compose monitoring stack built with **Prometheus**, **
 
 ## 🚀 Quick Start
 
+> [!WARNING]
+> **Security Warning**: The Alertmanager service exposed on port `9093` does not have built-in authentication. It is recommended to run this stack behind a reverse proxy (like NGINX or Traefik) and add Basic Auth or OAuth if exposing the UI publicly.
+
 ```bash
-# Start all services
+# 1. Setup environment variables (contains Grafana passwords and Slack URL)
+cp .env.example .env
+
+# 2. Start all services
 docker compose up -d
 
-# Check all services are running
+# 3. Check all services are running and healthy
 docker compose ps
 
-# View logs
+# 4. View logs
 docker compose logs -f
 ```
 
@@ -182,14 +188,14 @@ Add new jobs in `prometheus/prometheus.yml`:
 
 ### 3. Configure Alert Notifications
 
-Edit `alertmanager/alertmanager.yml` to set up your notification channels:
+Edit `alertmanager/alertmanager.yml` to set up your notification channels, or use the `.env` file to inject secrets:
 
 ```yaml
 # Example: Slack notifications
 receivers:
   - name: slack_notifications
     slack_configs:
-      - api_url: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+      - api_url: "${SLACK_WEBHOOK_URL}"
         channel: "#alerts"
 ```
 

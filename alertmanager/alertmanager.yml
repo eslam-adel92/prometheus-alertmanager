@@ -42,43 +42,20 @@ global:
 #   are batched into a single notification to reduce noise.
 # -----------------------------------------------------------------------------
 route:
-  # Default receiver for all alerts not matched by child routes
-  receiver: slack_critical
+  receiver: slack_warning # Default receiver
+  group_by: ["alertname", "cluster", "service"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
 
-  # Group alerts by name, instance, and severity to reduce notification noise
-  group_by: ["alertname", "instance", "severity"]
-
-  group_wait: 30s # Wait 30s for related alerts to arrive before notifying
-  group_interval: 5m # Wait 5m before sending updates for the same group
-  repeat_interval: 4h # Re-send unresolved alerts every 4 hours
-
-  # ---------------------------------------------------------------------------
-  # Child Routes — Severity-Based Routing
-  # ---------------------------------------------------------------------------
-  # These routes override the default receiver based on alert severity.
-  # More specific routes are listed first (critical before warning).
-  # ---------------------------------------------------------------------------
   routes:
-    # Critical alerts — sent to both webhook and (optionally) a high-priority channel
-    # - receiver: webhook_critical
-    #   matchers:
-    #     - severity="critical"
-    #   group_wait: 10s # Shorter wait for critical alerts — notify faster
-    #   repeat_interval: 1h # Repeat more frequently for critical alerts
-    #   continue: false # Stop processing routes after this match
-
-    # Warning alerts — sent to the default webhook
-    # - receiver: webhook_receiver
-    #   matchers:
-    #     - severity="warning"
-    #   continue: false
-
+    # Critical alerts
     - receiver: slack_critical
       matchers:
         - severity="critical"
-    - receiver: slack_warning
-      matchers:
-        - severity="warning"
+      group_wait: 10s
+      group_interval: 1m
+      repeat_interval: 1h
 
 # -----------------------------------------------------------------------------
 # Inhibition Rules
@@ -132,7 +109,7 @@ receivers:
   # Warning alerts → Slack
   - name: slack_warning
     slack_configs:
-      - api_url: "https://hooks.slack.com/services/REPLACE/WITH/YOUR_WEBHOOK"
+      - api_url: "${SLACK_WEBHOOK_URL}"
         channel: "#alerts"
         title: "⚠️ [{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}"
         text: >-
@@ -148,7 +125,7 @@ receivers:
   # Critical alerts → Slack (separate so you can customize urgency)
   - name: slack_critical
     slack_configs:
-      - api_url: "https://hooks.slack.com/services/REPLACE/WITH/YOUR_WEBHOOK"
+      - api_url: "${SLACK_WEBHOOK_URL}"
         channel: "#alerts"
         title: "🔴 [{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}"
         text: >-

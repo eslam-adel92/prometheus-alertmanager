@@ -1,1 +1,16 @@
+# System
 .DS_Store
+
+# Go App
+server/server
+server
+
+# Environment 
+.env
+
+# Data volumes
+*_data/
+prometheus_data/
+grafana_data/
+loki_data/
+alertmanager_data/
