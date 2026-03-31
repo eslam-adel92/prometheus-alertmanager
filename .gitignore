@@ -1,6 +1,6 @@
 # System
 .DS_Store
-
+.vscode/
 # Go App
 server/server
 server
